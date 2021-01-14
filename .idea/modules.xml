@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/tp2_IA.iml" filepath="$PROJECT_DIR$/.idea/modules/tp2_IA.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/tp2_IA-build.iml" filepath="$PROJECT_DIR$/.idea/modules/tp2_IA-build.iml" />
+    </modules>
+  </component>
+</project>
