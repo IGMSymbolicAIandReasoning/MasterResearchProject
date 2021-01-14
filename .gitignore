@@ -1,2 +1,8 @@
 *.class
 *.log
+null
+.bsp
+truc.ttl
+.idea
+project\target
+target
