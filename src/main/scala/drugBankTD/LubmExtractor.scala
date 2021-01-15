@@ -1,20 +1,25 @@
 package drugBankTD
 
+import java.io.{FileWriter, IOException}
 import java.util
-import java.text.SimpleDateFormat
-import java.io.FileOutputStream
+import java.lang
 
-import java.io.FileWriter
-import java.io.PrintWriter
 import com.github.javafaker.Faker
-import org.apache.jena.rdf.model.{ModelFactory, Property}
-import java.util.Date
-import scala.collection.mutable.ListBuffer
+import org.apache.jena.rdf.model.ModelFactory
 
-class LubmExtractor(val dbSource: String) {
+import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
+
+class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent: Int, vaccinesRepartition: util.ArrayList[Int], vaccines: util.ArrayList[String]) {
+
+  vaccinesRepartition.forEach(e => if(e < 0 || e > 100) throw new IllegalArgumentException("Each element of vaccinesRepartition should be between 0 and 100"))
+  vaccines.forEach(e => if(e.isEmpty) throw new IllegalArgumentException("Each element of vaccine should be non empty"))
+  if (vaccinesRepartition.size != vaccines.size) throw new IllegalArgumentException("VaccinesRepartition size must be equals than vaccines")
+  if (vaccinesRepartition.reduce(_+_) != 100) throw new IllegalArgumentException("VaccinesRepartition sum must be equals than 100")
+  if (male > 100 || male < 0) throw new IllegalArgumentException("Mal percentage should be between 0 and 100")
+  if (male > 100 || male < 0) throw new IllegalArgumentException("Mal percentage should be between 0 and 100")
 
   // nb: sujet, predicat, objet
-  //     ressource, property, ressource
+  //     ressource, property, ressource / litteral
   val typeProperty = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
   // Q3.1
   val model = ModelFactory.createDefaultModel()
@@ -62,40 +67,52 @@ class LubmExtractor(val dbSource: String) {
   }
 
 
-  def extender(subjectType: String) = {
+  def extender(subjectType: String, bornAfter: java.util.Date, bornBefore: java.util.Date) = {
     val typeProperty = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
     val rdfType = model.createProperty(typeProperty)
     val obj = model.createResource(subjectType)
     val iterator = model.listSubjectsWithProperty(rdfType, obj)
-
-    // Ajouter des bails a chaque type de personne pour etendre le bordel
     while (iterator.hasNext()) {
-      printf(iterator.next().getURI.toString + "\n")
       val faker = new Faker()
-      val id = faker.idNumber()
-      val sdf = new SimpleDateFormat("dd/MM/yyyy")
-      val youngAge = faker.date().between(sdf.parse("01/01/1991"), sdf.parse("01/01/2001"))
-      //val oldAge = faker.date().between(sdf.parse("01/01/1951"), sdf.parse("01/01/1991"))
-      val name = faker.name.fullName() // Miss Samanta Schmidt
-      val firstName = faker.name.firstName() // Emory
-      val lastName = faker.name.lastName() // Barton
-      val gender = generateGender()
-      val zipcode = faker.address.zipCode() // 60018 Sawayn Brooks Suite 449
-      model.add(model.createResource(iterator.next().getURI), model.createProperty("firstName"), model.createResource(firstName))
-      model.add(model.createResource(iterator.next().getURI), model.createProperty("lastName"), model.createResource(lastName))
-      model.add(model.createResource(iterator.next().getURI), model.createProperty("gender"), model.createResource(gender))
-      model.add(model.createResource(iterator.next().getURI), model.createProperty("zipcode"), model.createResource(zipcode))
-      model.add(model.createResource(iterator.next().getURI), model.createProperty("age"), model.createResource(youngAge.toString))
-      model.add(model.createResource(iterator.next().getURI), model.createProperty("id"), model.createResource(id.toString))
+      var uri = iterator.next().getURI
+      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#fName"), model.createLiteral(faker.name.firstName()))
+      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#lName"), model.createLiteral(faker.name.lastName()))
+      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#gender"), model.createResource("http://extension.group1.fr/onto#" + randomGender()))
+      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#zipcode"), model.createLiteral(faker.address.zipCode()))
+      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#birhtdate"), model.createLiteral(faker.date().between(bornAfter, bornBefore).toString))
+      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#state"), model.createLiteral(faker.address.state()))
+      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#id"), model.createLiteral(faker.idNumber().toString))
+      if (randomVaccinator()) model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#vaccine"), model.createResource("http://extension.group1.fr/onto#" + randomVaccine()))
     }
   }
 
-  def generateGender() : String = {
-    if (new Faker().number.numberBetween(0, 1) == 0) {
-      "Male"
+  def randomGender() : String = {
+    if (new Faker().number.numberBetween(0, 100) < male)  "Male"
+    else "Female"
+  }
+
+  def randomVaccinator() : Boolean = {
+    new Faker().number.numberBetween(0, 100) < vaccinationPercent
+  }
+
+  def randomVaccine() : String = {
+    var rand = new Faker().number.numberBetween(0, 100)
+    var i: Int = 0
+    while (i < vaccinesRepartition.size()){
+      rand = rand - vaccinesRepartition.get(i)
+      if (rand < 0) vaccines.get(i)
+      i += 1
     }
-    else {
-      "Female"
+    vaccines.get(0)
+  }
+
+  def toFile(fileName: String): Unit = {
+    val out = new FileWriter(fileName + ".rdf")
+    try model.write(out, "RDF/XML-ABBREV")
+    finally try out.close()
+    catch {
+      case closeException: IOException =>
+      // ignore
     }
   }
 }

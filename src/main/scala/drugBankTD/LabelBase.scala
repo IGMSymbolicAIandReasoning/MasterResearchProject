@@ -1,5 +1,5 @@
 package drugBankTD
 
 object LabelBase {
-  val INPUT = "file:///home/hoomar/Documents/m2/IA/ressources/lubm1.ttl"
+  val INPUT = "file:C:\\Users\\pjgal\\OneDrive\\Bureau\\lubm1.ttl"
 }
