@@ -13,6 +13,9 @@ object Main extends App {
 
   db.extender("http://swat.cse.lehigh.edu/onto/univ-bench.owl#AssistantProfessor", LabelBase.LOW_BIRTH_RANGE, LabelBase.HIGHT_BIRTH_RANGE)
 
+  // studen been between 20 and 30 years old
+  // professor’s age is between 30 and 70
+
   db.toFile(LabelBase.OUTPUT_FILE)
 
 }

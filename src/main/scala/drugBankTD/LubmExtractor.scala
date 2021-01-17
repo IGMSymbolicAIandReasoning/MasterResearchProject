@@ -3,6 +3,7 @@ package drugBankTD
 import java.io.{FileWriter, IOException}
 import java.util
 import java.lang
+import java.util.Date
 
 import com.github.javafaker.Faker
 import org.apache.jena.rdf.model.ModelFactory
@@ -50,7 +51,6 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
   }
 
   def monPetitTest() = {
-    val typeProperty = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
     val rdfType = model.createProperty(typeProperty)
     println("type property size " + model.listSubjectsWithProperty(rdfType).toList().size())
     val iterator = model.listSubjectsWithProperty(rdfType)
@@ -67,35 +67,68 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
   }
 
 
-  def extender(subjectType: String, bornBefore: java.util.Date, bornAfter: java.util.Date) = {
-    val typeProperty = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+  /**
+   * created random data based on subjectType, and class parameters
+   * @param subjectType person owning a property on his professional situation
+   * @param bornBefore enleve ça ... ONTOLOGIE
+   * @param bornAfter enlève ça ... ONTOLOGIE
+   */
+  def extender(subjectType: String, bornBefore: Date, bornAfter: Date) = {
     val rdfType = model.createProperty(typeProperty)
     val obj = model.createResource(subjectType)
     val iterator = model.listSubjectsWithProperty(rdfType, obj)
     while (iterator.hasNext()) {
       val faker = new Faker()
       var uri = iterator.next().getURI
-      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#fName"), model.createLiteral(faker.name.firstName()))
-      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#lName"), model.createLiteral(faker.name.lastName()))
-      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#gender"), model.createResource("http://extension.group1.fr/onto#" + randomGender()))
-      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#zipcode"), model.createLiteral(faker.address.zipCode()))
-      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#birhtdate"), model.createLiteral(faker.date().between(bornAfter, bornBefore).toString))
-      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#state"), model.createLiteral(faker.address.state()))
-      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#id"), model.createLiteral(faker.idNumber().toString))
+      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#fName"), model.createLiteral(faker.name.firstName()))    // firstName
+      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#lName"), model.createLiteral(faker.name.lastName()))   //lastName
+      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#gender"), model.createResource("http://extension.group1.fr/onto#" + randomGender()))   //Genre
+      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#zipcode"), model.createLiteral(faker.address.zipCode()))   //ZipCode
+      //Oulaoula problème ici ? -->
+      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#birhtdate"), model.createLiteral(faker.date().between(bornAfter, bornBefore).toString))    //DateOfBirth
+      //Pas cool raoul
+      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#state"), model.createLiteral(faker.address.state())) // Address
+      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#id"), model.createLiteral(faker.idNumber().toString)) // ID
+    }
+  }
+
+  /**
+   * adds properties of vaccines to some person based on vaccinationPercent
+   * @param subjectType person owning a property on his professional situation
+   */
+  def extender_vaccine(subjectType: String) = {
+    val rdfType = model.createProperty(typeProperty)
+    val obj = model.createResource(subjectType)
+    val iterator = model.listSubjectsWithProperty(rdfType, obj)
+    while (iterator.hasNext()) {
+      val faker = new Faker()
+      var uri = iterator.next().getURI
       if (randomVaccinator()) model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#vaccine"), model.createResource("http://extension.group1.fr/onto#" + randomVaccine()))
     }
   }
 
-  def randomGender() : String = {
+  /**
+   * shooting at random according to the number of male percentage given in parameter the class
+   * @return Male or Female
+   */
+  private def randomGender() : String = {
     if (new Faker().number.numberBetween(0, 100) < male)  "Male"
     else "Female"
   }
 
-  def randomVaccinator() : Boolean = {
+  /**
+   * shooting at random according to the number of people percentage given in parameter the class
+   * @return true if the person is vaccinated, false otherwise
+   */
+  private def randomVaccinator() : Boolean = {
     new Faker().number.numberBetween(0, 100) < vaccinationPercent
   }
 
-  def randomVaccine() : String = {
+  /**
+   * give a vaccine at random according to the probabilities given in parameter the class
+   * @return name of vaccine
+   */
+  private def randomVaccine() : String = {
     var rand = new Faker().number.numberBetween(0, 100)
     var i: Int = 0
     while (i < vaccinesRepartition.size()){
@@ -106,7 +139,11 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
     vaccines.get(0)
   }
 
-  def toFile(fileName: String): Unit = {
+  /**
+   * encode the model in rdf format
+   * @param fileName filename where the model will be encoded
+   */
+  private def toFile(fileName: String): Unit = {
     val out = new FileWriter(fileName)
     try model.write(out, "RDF/XML-ABBREV")
     finally try out.close()
