@@ -115,7 +115,7 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
    * @param subjectType URI represents a person owning a property on his professional situation
    * @return
    */
-  def isOlder30(subjectType: String) : Boolean = {
+  private def isOlder30(subjectType: String) : Boolean = {
     val position = subjectType.indexOf("#")
     val profession = subjectType.substring(position)
     if (profession.equals("#AssistantProfessor") || profession.equals("#AssociateProfessor") || profession.equals("#FullProfessor") || profession.equals("#Lecturer")) {
