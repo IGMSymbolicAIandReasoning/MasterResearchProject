@@ -21,14 +21,18 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
 
   // nb: sujet, predicat, objet
   //     ressource, property, ressource / litteral
+
+  // Q3.1
+  val model = ModelFactory.createDefaultModel()
+
   private val typeProperty = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+  private val rdfType = model.createProperty(typeProperty)
   private val sdf = new SimpleDateFormat("dd/MM/yyyy")
   private val twenty : Date = sdf.parse("01/01/2001")
   private val thirty : Date = sdf.parse("01/01/1991")
   private val seventy : Date = sdf.parse("01/01/1951")
 
-  // Q3.1
-  val model = ModelFactory.createDefaultModel()
+
 
   def load() = model.read(dbSource, "TTL")
 
@@ -42,8 +46,6 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
   }
 
   def monGigaTest() = {
-    val typeProperty = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-    val rdfType = model.createProperty(typeProperty)
     println("type property size " + model.listSubjectsWithProperty(rdfType).toList().size())
     val obj = model.createResource("http://swat.cse.lehigh.edu/onto/univ-bench.owl#AssistantProfessor")
     val iterator = model.listSubjectsWithProperty(rdfType, obj)
@@ -55,8 +57,11 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
     print("AssistantProfessor: " + i)
   }
 
+  /**
+   * Cette méthode est fausse
+   * ne renvoie pas pas le bon résultat, elle renvoie plus que ça
+   */
   def monPetitTest() = {
-    val rdfType = model.createProperty(typeProperty)
     println("type property size " + model.listSubjectsWithProperty(rdfType).toList().size())
     val iterator = model.listSubjectsWithProperty(rdfType)
     var i = 0
@@ -65,7 +70,7 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
 
       if (uri.contains("AssistantProfessor") || uri.contains("AssociateProfessor") || uri.contains("FullProfessor") || uri.contains("GraduateStudent") || uri.contains("Lecturer") || uri.contains("UndergraduateStudent")) {
         i = i + 1
-        printf(uri + "\n")
+        println(uri)
       }
     }
     print("Tous les gens: " + i)
@@ -77,9 +82,14 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
    * @param subjectType URI represents a person owning a property on his professional situation
    */
   def extender(subjectType: String) = {
-    val rdfType = model.createProperty(typeProperty)
-    val obj = model.createResource(subjectType)
-    val iterator = model.listSubjectsWithProperty(rdfType, obj)
+    val iterator = model.listSubjectsWithProperty(rdfType, model.createResource(subjectType))
+    var low_birth_range = thirty
+    var hight_birth_range = seventy
+    if(! isOlder30(subjectType)){
+      low_birth_range = twenty
+      hight_birth_range = thirty
+    }
+
     while (iterator.hasNext()) {
       val faker = new Faker()
       var uri = iterator.next().getURI
@@ -87,9 +97,7 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
       model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#lName"), model.createLiteral(faker.name.lastName()))   //lastName
       model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#gender"), model.createResource("http://extension.group1.fr/onto#" + randomGender()))   //Genre
       model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#zipcode"), model.createLiteral(faker.address.zipCode()))   //ZipCode
-      if(isOlder30(subjectType)) model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#birhtdate"), model.createLiteral(faker.date().between(seventy, thirty).toString))
-      else model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#birhtdate"), model.createLiteral(faker.date().between(thirty, twenty).toString))
-
+      model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#birhtdate"), model.createLiteral(faker.date().between(hight_birth_range, low_birth_range).toString))
       model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#state"), model.createLiteral(faker.address.state())) // Address
       model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#id"), model.createLiteral(faker.idNumber().toString)) // ID
     }
@@ -100,9 +108,7 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
    * @param subjectType URI represents a person owning a property on his professional situation
    */
   def extender_vaccine(subjectType: String) = {
-    val rdfType = model.createProperty(typeProperty)
-    val obj = model.createResource(subjectType)
-    val iterator = model.listSubjectsWithProperty(rdfType, obj)
+    val iterator = model.listSubjectsWithProperty(rdfType, model.createResource(subjectType))
     while (iterator.hasNext()) {
       val faker = new Faker()
       var uri = iterator.next().getURI
