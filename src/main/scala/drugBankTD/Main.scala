@@ -14,8 +14,6 @@ object Main extends App {
 
   db.load()
 
-  db.monPetitTest()
-
   db.extender("http://swat.cse.lehigh.edu/onto/univ-bench.owl#AssistantProfessor")
   db.extender_vaccine("http://swat.cse.lehigh.edu/onto/univ-bench.owl#AssistantProfessor")
 

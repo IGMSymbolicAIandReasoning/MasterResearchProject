@@ -58,17 +58,16 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
   }
 
   /**
-   * Cette méthode est fausse
-   * ne renvoie pas pas le bon résultat, elle renvoie plus que ça
+   * Display all people and the number of people
    */
   def monPetitTest() = {
     println("type property size " + model.listSubjectsWithProperty(rdfType).toList().size())
     val iterator = model.listSubjectsWithProperty(rdfType)
     var i = 0
     while (iterator.hasNext()) {
-      var uri = iterator.next().getURI.toString
-
-      if (uri.contains("AssistantProfessor") || uri.contains("AssociateProfessor") || uri.contains("FullProfessor") || uri.contains("GraduateStudent") || uri.contains("Lecturer") || uri.contains("UndergraduateStudent")) {
+      val uri = iterator.next().getURI.toString
+      val profession = uri.split("/")
+      if (profession.length == 4 && (uri.contains("AssistantProfessor") || uri.contains("AssociateProfessor") || uri.contains("FullProfessor") || uri.contains("GraduateStudent") || uri.contains("Lecturer") || uri.contains("UndergraduateStudent"))) {
         i = i + 1
         println(uri)
       }
