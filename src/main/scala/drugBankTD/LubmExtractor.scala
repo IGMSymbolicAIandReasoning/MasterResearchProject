@@ -67,7 +67,7 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
   }
 
 
-  def extender(subjectType: String, bornAfter: java.util.Date, bornBefore: java.util.Date) = {
+  def extender(subjectType: String, bornBefore: java.util.Date, bornAfter: java.util.Date) = {
     val typeProperty = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
     val rdfType = model.createProperty(typeProperty)
     val obj = model.createResource(subjectType)
@@ -107,7 +107,7 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
   }
 
   def toFile(fileName: String): Unit = {
-    val out = new FileWriter(fileName + ".rdf")
+    val out = new FileWriter(fileName)
     try model.write(out, "RDF/XML-ABBREV")
     finally try out.close()
     catch {
