@@ -64,7 +64,7 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
         })
       }
     }
-    print("They are " + all_subjects.size + " subjects with the desired properties. ")
+    println("They are " + all_subjects.size + " subjects with the desired properties. ")
   }
 
   /**
