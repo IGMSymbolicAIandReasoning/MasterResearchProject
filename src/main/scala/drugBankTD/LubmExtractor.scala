@@ -5,18 +5,20 @@ import java.util
 import java.util.ArrayList
 import java.lang
 import java.util.Date
+
 import com.github.javafaker.Faker
-import org.apache.jena.rdf.model.ModelFactory
-
+import org.apache.jena.rdf.model.{Model, ModelFactory}
 import java.text.SimpleDateFormat
-import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 
-class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent: Int, vaccinesRepartition: ArrayList[Int], vaccines: ArrayList[String], val subjects :  ArrayList[String]) {
+import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
+import scala.util.control.Breaks.break
+
+class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent: Int, vaccinesRepartition: util.ArrayList[Int], vaccines: util.ArrayList[String], val subjects:  util.ArrayList[String]) {
 
   vaccinesRepartition.forEach(e => if(e < 0 || e > 100) throw new IllegalArgumentException("Each element of vaccinesRepartition should be between 0 and 100"))
   vaccines.forEach(e => if(e.isEmpty) throw new IllegalArgumentException("Each element of vaccine should be non empty"))
   if (vaccinesRepartition.size != vaccines.size) throw new IllegalArgumentException("VaccinesRepartition size must be equals than vaccines")
-  if (vaccinesRepartition.reduce(_+_) != 100) throw new IllegalArgumentException("VaccinesRepartition sum must be equals than 100")
+  if (vaccinesRepartition.sum != 100) throw new IllegalArgumentException("VaccinesRepartition sum must be equals than 100")
   if (male > 100 || male < 0) throw new IllegalArgumentException("Mal percentage should be between 0 and 100")
   if (vaccinationPercent > 100 || vaccinationPercent < 0) throw new IllegalArgumentException("vaccined percentage should be between 0 and 100")
 
@@ -24,7 +26,7 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
   //     ressource, property, ressource / litteral
 
   // Q3.1
-  val model = ModelFactory.createDefaultModel()
+  val model: Model = ModelFactory.createDefaultModel()
 
   private val typeProperty = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
   private val rdfType = model.createProperty(typeProperty)
@@ -32,14 +34,14 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
   private val twenty : Date = sdf.parse("01/01/2001")
   private val thirty : Date = sdf.parse("01/01/1991")
   private val seventy : Date = sdf.parse("01/01/1951")
-  private val all_subjects = new ArrayList[String]()
+  private val all_subjects = new util.ArrayList[String]()
 
 
 
   /**
    * Load data in model
    */
-  def load() = {
+  def load(): Unit = {
     model.read(dbSource, "TTL")
     load_resources()
   }
@@ -48,15 +50,15 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
   /**
    * create a list with all the subjects having the desired properties
    */
-  def load_resources() = {
-    val subject_id : ArrayList[String] = subjects.foldLeft(new ArrayList[String]())((acc, s) => {
+  def load_resources(): Unit = {
+    val subject_id : util.ArrayList[String] = subjects.foldLeft(new util.ArrayList[String]())((acc, s) => {
       acc.add(s.substring(s.indexOf("#") + 1))
       acc
     })
     val iterator = model.listSubjectsWithProperty(rdfType)
-    while (iterator.hasNext()) {
+    while (iterator.hasNext) {
       val uri_done = iterator.next().getURI
-      val uri = uri_done.toString
+      val uri = uri_done
       val suject = uri.split("/")
       if (suject.length == 4){
         subject_id.forEach(x => {
@@ -89,14 +91,17 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
    * @return name of vaccine
    */
   private def randomVaccine() : String = {
-    var rand = new Faker().number.numberBetween(0, 100)
+    val rand = new Faker().number.numberBetween(0, 100)
     var i: Int = 0
+    var acc = 0
     while (i < vaccinesRepartition.size()){
-      rand = rand - vaccinesRepartition.get(i)
-      if (rand < 0) vaccines.get(i)
-      i += 1
+      acc = acc + vaccinesRepartition.get(i)
+      if (acc >= rand) {
+        return vaccines.get(i)
+      }
+      i = i + 1
     }
-    vaccines.get(0)
+    vaccines.get(i)
   }
 
   /**
@@ -108,7 +113,7 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
     try model.write(out, "RDF/XML-ABBREV")
     finally try out.close()
     catch {
-      case closeException: IOException =>
+      case _: IOException =>
       // ignore
     }
   }
@@ -122,14 +127,13 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
     if (subjectType.contains("AssistantProfessor") || subjectType.contains("AssociateProfessor") || subjectType.contains("FullProfessor") || subjectType.contains("Lecturer")) {
       return true
     }
-    return false
+    false
   }
 
   /**
    * created random data based on subjectType, and class parameters
-   * @param subjectType URI represents a person owning a property on his professional situation
    */
-  def extender() = {
+  def extender(): Unit = {
     val faker = new Faker()
     all_subjects.forEach(uri => {
       var low_birth_range = thirty
@@ -149,9 +153,8 @@ class LubmExtractor(val dbSource: String, val male: Int, val vaccinationPercent:
 
   /**
    * adds properties of vaccines to some person based on vaccinationPercent
-   * @param subjectType URI represents a person owning a property on his professional situation
    */
-  def extender_vaccine() = {
+  def extender_vaccine(): Unit = {
     val faker = new Faker()
     all_subjects.forEach(uri => {
       if (randomVaccinator()) model.add(model.createResource(uri), model.createProperty("http://extension.group1.fr/onto#vaccine"), model.createResource("http://extension.group1.fr/onto#" + randomVaccine()))

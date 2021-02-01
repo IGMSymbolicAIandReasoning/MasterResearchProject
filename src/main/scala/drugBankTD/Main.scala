@@ -9,7 +9,6 @@ object Main extends App {
   val db = new LubmExtractor(LabelBase.INPUT_FILE, LabelBase.MALE_PERCENT, LabelBase.PEOPLE_VACCINATED_PERCENT, LabelBase.VACINES_PERCENT, LabelBase.VACCINES_NAMES, LabelBase.SUJECTS)
 
   db.load()
-
   print("creates data : ")
   db.extender()
   println("done.")
@@ -21,5 +20,7 @@ object Main extends App {
   print("writes in file : ")
   db.toFile(LabelBase.OUTPUT_FILE)
   println("done")
+
+
 }
 
